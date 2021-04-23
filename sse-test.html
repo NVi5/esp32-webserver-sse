@@ -74,8 +74,6 @@
 </body>
 <script type='text/javascript'>
     var source_sta, source_ap;
-    const URL = 'http://192.168.4.1';
-    // const URL = 'http://192.168.0.104';
     var response = document.querySelector('#response');
     var busy_counter = 0;
 
@@ -92,7 +90,7 @@
     	{
     		obj.style.background = "limegreen";
 	    	response.innerHTML = 'Connecting...';
-			source_ap = new EventSource(URL);
+			source_ap = new EventSource('/sse');
 			source_ap.onopen = function()
 			{
 				response.innerHTML = 'Connected';
@@ -105,7 +103,7 @@
 			};
 			source_ap.onerror = function(event)
 			{
-				response.innerHTML = `failed to connect to ${URL}`;
+				response.innerHTML = `failed to connect to server`;
 				source_ap.close();
 				source_ap = null;
 			};
@@ -115,7 +113,7 @@
     {
     	var oReq = new XMLHttpRequest();
     	var value = document.querySelector('#client-data').value.replace(/ /g, '_');
-		oReq.open('GET', `${URL}?data=${value}`);
+		oReq.open('GET', `/?data=${value}`);
 		oReq.send();
     }
     var counter = 0;
@@ -138,7 +136,7 @@
 		    	var oReq = new XMLHttpRequest();
 		    	var value = `testing_${counter++}`;
 		    	console.log(value);
-				oReq.open('GET', `${URL}?data=${value}`);
+				oReq.open('GET', `/?data=${value}`);
 				oReq.send();
 		    }, 40);
     	}

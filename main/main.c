@@ -137,8 +137,6 @@ const static char http_sse_html[]  = "<!DOCTYPE html>\n"
                                     "</body>\n"
                                     "<script type='text/javascript'>\n"
                                     "    var source_sta, source_ap;\n"
-                                    "    const URL = 'http://192.168.4.1';\n"
-                                    "    // const URL = 'http://192.168.0.104';\n"
                                     "    var response = document.querySelector('#response');\n"
                                     "    var busy_counter = 0;\n"
                                     "    function recieveData(obj)\n"
@@ -154,7 +152,7 @@ const static char http_sse_html[]  = "<!DOCTYPE html>\n"
                                     "       {\n"
                                     "           obj.style.background = 'limegreen';\n"
                                     "           response.innerHTML = 'Connecting...';\n"
-                                    "           source_ap = new EventSource(URL);\n"
+                                    "           source_ap = new EventSource('/sse');\n"
                                     "           source_ap.onopen = function()\n"
                                     "           {\n"
                                     "               response.innerHTML = 'Connected';\n"
@@ -167,7 +165,7 @@ const static char http_sse_html[]  = "<!DOCTYPE html>\n"
                                     "           };\n"
                                     "           source_ap.onerror = function(event)\n"
                                     "           {\n"
-                                    "               response.innerHTML = `failed to connect to ${URL}`;\n"
+                                    "               response.innerHTML = `failed to connect to server`;\n"
                                     "               source_ap.close();\n"
                                     "               source_ap = null;\n"
                                     "           };\n"
@@ -177,7 +175,7 @@ const static char http_sse_html[]  = "<!DOCTYPE html>\n"
                                     "    {\n"
                                     "       var oReq = new XMLHttpRequest();\n"
                                     "       var value = document.querySelector('#client-data').value.replace(/ /g, '_');\n"
-                                    "       oReq.open('GET', `${URL}?data=${value}`);\n"
+                                    "       oReq.open('GET', `/?data=${value}`);\n"
                                     "       oReq.send();\n"
                                     "    }\n"
                                     "    var counter = 0;\n"
@@ -200,7 +198,7 @@ const static char http_sse_html[]  = "<!DOCTYPE html>\n"
                                     "               var oReq = new XMLHttpRequest();\n"
                                     "               var value = `testing_${counter++}`;\n"
                                     "               console.log(value);\n"
-                                    "               oReq.open('GET', `${URL}?data=${value}`);\n"
+                                    "               oReq.open('GET', `/?data=${value}`);\n"
                                     "               oReq.send();\n"
                                     "           }, 40);\n"
                                     "       }\n"
@@ -261,37 +259,22 @@ static esp_err_t event_handler(void *ctx, system_event_t *event)
 
 static void initialise_wifi(void)
 {
-    tcpip_adapter_init();
     wifi_event_group = xEventGroupCreate();
-    ESP_ERROR_CHECK( esp_event_loop_init(event_handler, NULL) );
-    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
-    ESP_ERROR_CHECK( esp_wifi_init(&cfg) );
-    ESP_ERROR_CHECK( esp_wifi_set_storage(WIFI_STORAGE_RAM) );
-    ESP_ERROR_CHECK( esp_wifi_set_mode(WIFI_MODE_APSTA) );
-    wifi_config_t sta_config =
+    tcpip_adapter_init();
+    ESP_ERROR_CHECK(esp_event_loop_init(event_handler, NULL));
+    wifi_init_config_t wifi_init_config = WIFI_INIT_CONFIG_DEFAULT();
+    ESP_ERROR_CHECK(esp_wifi_init(&wifi_init_config));
+    ESP_ERROR_CHECK(esp_wifi_set_storage(WIFI_STORAGE_RAM));
+    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
+    wifi_config_t wifi_config =
     {
         .sta = {
-            .ssid = "Chen Family",
-            .password = "June15#a",
-            .bssid_set = false
+            .ssid = "your_ssid",
+            .password = "your_password"
         }
     };
-    wifi_config_t ap_config =
-    {
-        .ap = {
-            .ssid = "SSE-ESP32-EXAMPLE",
-            .ssid_len = 0,
-            .password = "testing1234",
-            .channel = 3,
-            .authmode = WIFI_AUTH_WPA2_PSK,
-            .beacon_interval = 500,
-            .max_connection = 16,
-        }
-    };
-    ESP_ERROR_CHECK( esp_wifi_set_config(WIFI_IF_STA, &sta_config) );
-    ESP_ERROR_CHECK( esp_wifi_set_config(WIFI_IF_AP, &ap_config) );
-    ESP_ERROR_CHECK( esp_wifi_start() );
-    ESP_ERROR_CHECK( esp_wifi_connect() );
+    ESP_ERROR_CHECK(esp_wifi_set_config(ESP_IF_WIFI_STA, &wifi_config));
+    ESP_ERROR_CHECK(esp_wifi_start());
 }
 
 bool extract_url_variable(const char * variable,
@@ -365,8 +348,7 @@ static void http_server_netconn_serve(void *pvParameters)
         //// Adding the first and last "\r\n" means that this is not the first or last line
         is_event_stream = strstr(buf, "\r\nAccept: text/event-stream\r\n");
         //// Output captured http request information
-        // printf("buf = %.*s\n", buflen, buf);
-        // printf("ACCEPT = 0x%X\n", is_event_stream);
+        printf("buf = %.*s\n", buflen, buf);
 
         if(is_event_stream != NULL)
         {
@@ -379,7 +361,7 @@ static void http_server_netconn_serve(void *pvParameters)
         else
         {
             sscanf(buf, "GET %255s HTTP/1.1\n", url);
-            // printf("url = %s\n", url);
+            printf("url = %s\n", url);
             //// Beyond this point, I am only sending html data back!
             netconn_write(conn, http_html_hdr, sizeof(http_html_hdr) - 1, NETCONN_NOCOPY);
             //// More cases
@@ -392,7 +374,7 @@ static void http_server_netconn_serve(void *pvParameters)
                     special_string,
                     SPECIAL_STRING_LENGTH
                 );
-                // printf("%d)%s\n", success_flag, special_string);
+                printf("Extract data: status=%d, string=%s\n", success_flag, special_string);
                 if (success_flag)
                 {
                     netconn_write(conn, success, sizeof(success) - 1, NETCONN_NOCOPY);
