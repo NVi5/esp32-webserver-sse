@@ -1,2 +1,4 @@
-# esp32-webserver-sse
-An example project that implements a basic http web server and Server Sent Events (SSE) using LWIP's RAW TCP callback functionality.
+# ESP32 webserver SSE
+Fork wykorzystany na potrzeby raportu
+
+Link do raportu: [Raport](lwip_websocket_raport.pdf)
